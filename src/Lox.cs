@@ -4,7 +4,10 @@ using System.IO;
 
 public class Lox
 {
+    private static readonly Interpreter Interpreter = new Interpreter();
+
     public static bool HadError = false;
+    public static bool HadRuntimeError = false;
 
     public static void Main(string[] args)
     {
@@ -31,6 +34,11 @@ public class Lox
         if (HadError)
         {
             Environment.Exit(65);
+        }
+
+        if (HadRuntimeError)
+        {
+            Environment.Exit(70);
         }
     }
 
@@ -64,12 +72,18 @@ public class Lox
             return;
         }
 
-        Console.WriteLine(new AstPrinter().Print(expression));
+        Interpreter.Interpret(expression);
     }
 
     public static void Error(int line, string message)
     {
         Report(line, "", message);
+    }
+
+    public static void RuntimeError(RuntimeException error)
+    {
+        Console.Error.WriteLine($"{error.Message}\n[line {error.Token.Line}]");
+        HadRuntimeError = true;
     }
 
     private static void Report(int line, string where, string message)
