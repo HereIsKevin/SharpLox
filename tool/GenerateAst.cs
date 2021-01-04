@@ -121,6 +121,6 @@ public class GenerateAst
 
     private static string ToTitleCase(string text)
     {
-        return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(text);
+        return $"{char.ToUpper(text[0])}{text.Substring(1)}";
     }
 }
