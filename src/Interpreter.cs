@@ -124,7 +124,7 @@ public class Interpreter : Expr.Visitor<object>, Stmt.Visitor<object>
             case BangEqual:
                 return !IsEqual(left, right);
             case EqualEqual:
-                return !IsEqual(left, right);
+                return IsEqual(left, right);
             case Minus:
                 CheckNumberOperands(expr.Operation, left, right);
                 return (double)left - (double)right;
