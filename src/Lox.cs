@@ -14,7 +14,7 @@ public class Lox
         if (args.Length > 1)
         {
             Console.WriteLine("Usage: sharplox [script]");
-            Environment.Exit(64);
+            System.Environment.Exit(64);
         }
         else if (args.Length == 1)
         {
@@ -33,12 +33,12 @@ public class Lox
 
         if (HadError)
         {
-            Environment.Exit(65);
+            System.Environment.Exit(65);
         }
 
         if (HadRuntimeError)
         {
-            Environment.Exit(70);
+            System.Environment.Exit(70);
         }
     }
 
@@ -65,14 +65,14 @@ public class Lox
         List<Token> tokens = scanner.ScanTokens();
 
         Parser parser = new Parser(tokens);
-        Expr expression = parser.Parse();
+        List<Stmt> statements = parser.Parse();
 
         if (HadError)
         {
             return;
         }
 
-        Interpreter.Interpret(expression);
+        Interpreter.Interpret(statements);
     }
 
     public static void Error(int line, string message)

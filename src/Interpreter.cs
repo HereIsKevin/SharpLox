@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 using static TokenType;
 
@@ -12,19 +13,62 @@ public class RuntimeException : Exception
     }
 }
 
-public class Interpreter : Expr.Visitor<object>
+public class Interpreter : Expr.Visitor<object>, Stmt.Visitor<object>
 {
-    public void Interpret(Expr expression)
+    private Environment Environment = new Environment();
+
+    public void Interpret(List<Stmt> statements)
     {
         try
         {
-            object value = Evaluate(expression);
-            Console.WriteLine(Stringify(value));
+            foreach (Stmt statement in statements)
+            {
+                Execute(statement);
+            }
         }
         catch (RuntimeException error)
         {
             Lox.RuntimeError(error);
         }
+    }
+
+    public object VisitExpressionStmt(Stmt.Expression stmt)
+    {
+        Evaluate(stmt.Value);
+        return null;
+    }
+
+    public object VisitPrintStmt(Stmt.Print stmt)
+    {
+        object value = Evaluate(stmt.Value);
+        Console.WriteLine(Stringify(value));
+        return null;
+    }
+
+    public object VisitVarStmt(Stmt.Var stmt)
+    {
+        object value = null;
+
+        if (stmt.Initializer != null)
+        {
+            value = Evaluate(stmt.Initializer);
+        }
+
+        Environment.Define(stmt.Name.Lexeme, value);
+        return null;
+    }
+
+    public object VisitBlockStmt(Stmt.Block stmt)
+    {
+        ExecuteBlock(stmt.Statements, new Environment(Environment));
+        return null;
+    }
+
+    public object VisitAssignExpr(Expr.Assign expr)
+    {
+        object value = Evaluate(expr.Value);
+        Environment.Assign(expr.Name, value);
+        return value;
     }
 
     public object VisitLiteralExpr(Expr.Literal expr)
@@ -51,6 +95,11 @@ public class Interpreter : Expr.Visitor<object>
         }
 
         return null;
+    }
+
+    public object VisitVariableExpr(Expr.Variable expr)
+    {
+        return Environment.Get(expr.Name);
     }
 
     public object VisitBinaryExpr(Expr.Binary expr)
@@ -179,5 +228,29 @@ public class Interpreter : Expr.Visitor<object>
     private object Evaluate(Expr expr)
     {
         return expr.Accept(this);
+    }
+
+    private void Execute(Stmt stmt)
+    {
+        stmt.Accept(this);
+    }
+
+    private void ExecuteBlock(List<Stmt> statements, Environment environment)
+    {
+        Environment previous = Environment;
+
+        try
+        {
+            Environment = environment;
+
+            foreach (Stmt statement in statements)
+            {
+                Execute(statement);
+            }
+        }
+        finally
+        {
+            Environment = previous;
+        }
     }
 }

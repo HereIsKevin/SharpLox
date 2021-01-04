@@ -10,16 +10,25 @@ public class GenerateAst
         if (args.Length != 1)
         {
             Console.Error.WriteLine("Usage: generate_ast <output directory>");
-            Environment.Exit(64);
+            System.Environment.Exit(64);
         }
 
         string outputDir = args[0];
 
         DefineAst(outputDir, "Expr", new List<string> {
+            "Assign : Token name, Expr value",
             "Binary : Expr left, Token operation, Expr right",
             "Grouping : Expr expression",
             "Literal : object value",
-            "Unary : Token operation, Expr right"
+            "Unary : Token operation, Expr right",
+            "Variable : Token name"
+        });
+
+        DefineAst(outputDir, "Stmt", new List<string> {
+            "Block : List<Stmt> statements",
+            "Expression : Expr value",
+            "Print : Expr value",
+            "Var : Token name, Expr initializer"
         });
     }
 
@@ -29,6 +38,8 @@ public class GenerateAst
         string path = $"{outputDir}/{baseName}.cs";
         StreamWriter writer = new StreamWriter(path);
 
+        writer.WriteLine("using System.Collections.Generic;");
+        writer.WriteLine();
         writer.WriteLine($"public abstract class {baseName}");
         writer.WriteLine("{");
 
