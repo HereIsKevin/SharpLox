@@ -42,7 +42,8 @@ public class GenerateAst
             DefineType(writer, baseName, className, fields);
         }
 
-        writer.WriteLine("    public abstract R Accept<R>(Visitor<R> visitor);");
+        writer.WriteLine(
+            "    public abstract R Accept<R>(Visitor<R> visitor);");
         writer.WriteLine("}");
         writer.Close();
     }
@@ -56,9 +57,10 @@ public class GenerateAst
         foreach (string type in types)
         {
             string typeName = type.Split(":")[0].Trim();
-            string valueName = baseName.ToLower();
+            string valName = baseName.ToLower();
 
-            writer.WriteLine($"        R Visit{typeName}{baseName}({typeName} {valueName});");
+            writer.WriteLine(
+                $"        R Visit{typeName}{baseName}({typeName} {valName});");
         }
 
         writer.WriteLine("    }");
@@ -85,9 +87,11 @@ public class GenerateAst
         writer.WriteLine("        }");
         writer.WriteLine();
 
-        writer.WriteLine("        public override R Accept<R>(Visitor<R> visitor)");
+        writer.WriteLine(
+            "        public override R Accept<R>(Visitor<R> visitor)");
         writer.WriteLine("        {");
-        writer.WriteLine($"            return visitor.Visit{className}{baseName}(this);");
+        writer.WriteLine(
+            $"            return visitor.Visit{className}{baseName}(this);");
         writer.WriteLine("        }");
         writer.WriteLine();
 
