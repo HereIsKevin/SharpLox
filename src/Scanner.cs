@@ -146,8 +146,12 @@ public class Scanner
         }
 
         string text = Source.Substring(Start, Current - Start);
-        TokenType type = TokenType.Identifier;
-        Keywords.TryGetValue(text, out type);
+        TokenType type;
+
+        if (!Keywords.TryGetValue(text, out type)) {
+            type = TokenType.Identifier;
+        }
+
         AddToken(type);
     }
 
