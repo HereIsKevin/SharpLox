@@ -47,9 +47,24 @@ public class Parser
 
     private Stmt Statement()
     {
+        if (Match(For))
+        {
+            return ForStatement();
+        }
+
+        if (Match(If))
+        {
+            return IfStatement();
+        }
+
         if (Match(Print))
         {
             return PrintStatement();
+        }
+
+        if (Match(While))
+        {
+            return WhileStatement();
         }
 
         if (Match(LeftBrace))
@@ -58,6 +73,83 @@ public class Parser
         }
 
         return ExpressionStatement();
+    }
+
+    private Stmt ForStatement()
+    {
+        Consume(LeftParen, "Expect '(' after 'for'.");
+
+        Stmt initializer;
+
+        if (Match(Semicolon))
+        {
+            initializer = null;
+        }
+        else if (Match(Var))
+        {
+            initializer = VarDeclaration();
+        }
+        else
+        {
+            initializer = ExpressionStatement();
+        }
+
+        Expr condition = null;
+
+        if (!Check(Semicolon))
+        {
+            condition = Expression();
+        }
+
+        Consume(Semicolon, "Expect ';' after loop condition.");
+
+        Expr increment = null;
+
+        if (!Check(RightParen))
+        {
+            increment = Expression();
+        }
+
+        Consume(RightParen, "Expect ')' after for clauses.");
+
+        Stmt body = Statement();
+
+        if (increment != null)
+        {
+            body = new Stmt.Block(
+                new List<Stmt> { body, new Stmt.Expression(increment) });
+        }
+
+        if (condition == null)
+        {
+            condition = new Expr.Literal(true);
+        }
+
+        body = new Stmt.While(condition, body);
+
+        if (initializer != null)
+        {
+            body = new Stmt.Block(new List<Stmt> { initializer, body });
+        }
+
+        return body;
+    }
+
+    private Stmt IfStatement()
+    {
+        Consume(LeftParen, "Expect '(' after 'if'.");
+        Expr condition = Expression();
+        Consume(RightParen, "Expect ')' after if condition.");
+
+        Stmt thenBranch = Statement();
+        Stmt elseBranch = null;
+
+        if (Match(Else))
+        {
+            elseBranch = Statement();
+        }
+
+        return new Stmt.If(condition, thenBranch, elseBranch);
     }
 
     private Stmt PrintStatement()
@@ -79,6 +171,16 @@ public class Parser
 
         Consume(Semicolon, "Expect ';' after variable declaration.");
         return new Stmt.Var(name, initializer);
+    }
+
+    private Stmt WhileStatement()
+    {
+        Consume(LeftParen, "Expect '(' after 'while'.");
+        Expr condition = Expression();
+        Consume(RightParen, "Expect ')' after condition.");
+        Stmt body = Statement();
+
+        return new Stmt.While(condition, body);
     }
 
     private Stmt ExpressionStatement()
@@ -108,7 +210,7 @@ public class Parser
 
     private Expr Assignment()
     {
-        Expr expr = Equality();
+        Expr expr = Or();
 
         if (Match(Equal))
         {
@@ -122,6 +224,36 @@ public class Parser
             }
 
             Error(equals, "Invalid assignment target.");
+        }
+
+        return expr;
+    }
+
+    private Expr Or()
+    {
+        Expr expr = And();
+
+        while (Match(TokenType.Or))
+        {
+            Token operation = Previous();
+            Expr right = And();
+
+            expr = new Expr.Logical(expr, operation, right);
+        }
+
+        return expr;
+    }
+
+    private Expr And()
+    {
+        Expr expr = Equality();
+
+        while (Match(TokenType.And))
+        {
+            Token operation = Previous();
+            Expr right = Equality();
+
+            expr = new Expr.Logical(expr, operation, right);
         }
 
         return expr;
