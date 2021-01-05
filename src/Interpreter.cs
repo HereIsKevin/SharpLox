@@ -3,15 +3,37 @@ using System.Collections.Generic;
 
 using static TokenType;
 
+class ClockFunction : LoxCallable
 {
+    private static readonly DateTime Start =
+        new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
+    public int Arity()
     {
+        return 0;
+    }
+
+    public object Call(Interpreter interpreter, List<object> arguments)
+    {
+        return (double)(DateTime.UtcNow - Start).TotalMilliseconds / 1000.0;
+    }
+
+    public override string ToString()
+    {
+        return "<native fn>";
     }
 }
 
 public class Interpreter : Expr.Visitor<object>, Stmt.Visitor<object>
 {
-    private Environment Environment = new Environment();
+    public readonly Environment Globals = new Environment();
+    private Environment Environment;
+
+    public Interpreter()
+    {
+        Globals.Define("clock", new ClockFunction());
+        Environment = Globals;
+    }
 
     public void Interpret(List<Stmt> statements)
     {
@@ -34,6 +56,13 @@ public class Interpreter : Expr.Visitor<object>, Stmt.Visitor<object>
         return null;
     }
 
+    public object VisitFunctionStmt(Stmt.Function stmt)
+    {
+        LoxFunction function = new LoxFunction(stmt, Environment);
+        Environment.Define(stmt.Name.Lexeme, function);
+        return null;
+    }
+
     public object VisitIfStmt(Stmt.If stmt)
     {
         if (IsTruthy(Evaluate(stmt.Condition)))
@@ -53,6 +82,18 @@ public class Interpreter : Expr.Visitor<object>, Stmt.Visitor<object>
         object value = Evaluate(stmt.Value);
         Console.WriteLine(Stringify(value));
         return null;
+    }
+
+    public object VisitReturnStmt(Stmt.Return stmt)
+    {
+        object value = null;
+
+        if (stmt.Value != null)
+        {
+            value = Evaluate(stmt.Value);
+        }
+
+        throw new Return(value);
     }
 
     public object VisitVarStmt(Stmt.Var stmt)
@@ -121,6 +162,34 @@ public class Interpreter : Expr.Visitor<object>, Stmt.Visitor<object>
     public object VisitGroupingExpr(Expr.Grouping expr)
     {
         return Evaluate(expr.Expression);
+    }
+
+    public object VisitCallExpr(Expr.Call expr)
+    {
+        object callee = Evaluate(expr.Callee);
+        List<object> arguments = new List<object>();
+
+        foreach (Expr argument in expr.Arguments)
+        {
+            arguments.Add(Evaluate(argument));
+        }
+
+        if (!(callee is LoxCallable))
+        {
+            throw new RuntimeException(
+                expr.Paren, "Can only call functions and classes.");
+        }
+
+        LoxCallable function = (LoxCallable)callee;
+        int arity = function.Arity();
+
+        if (arguments.Count != arity)
+        {
+            throw new RuntimeException(expr.Paren,
+                $"Expected {arity} arguments but got {arguments.Count}.");
+        }
+
+        return function.Call(this, arguments);
     }
 
     public object VisitUnaryExpr(Expr.Unary expr)
@@ -277,7 +346,7 @@ public class Interpreter : Expr.Visitor<object>, Stmt.Visitor<object>
         stmt.Accept(this);
     }
 
-    private void ExecuteBlock(List<Stmt> statements, Environment environment)
+    public void ExecuteBlock(List<Stmt> statements, Environment environment)
     {
         Environment previous = Environment;
 

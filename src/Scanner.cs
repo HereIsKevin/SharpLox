@@ -25,7 +25,7 @@ public class Scanner
             ["nil"] = Nil,
             ["or"] = Or,
             ["print"] = Print,
-            ["return"] = Return,
+            ["return"] = TokenType.Return,
             ["super"] = Super,
             ["this"] = This,
             ["true"] = True,
@@ -148,7 +148,8 @@ public class Scanner
         string text = Source.Substring(Start, Current - Start);
         TokenType type;
 
-        if (!Keywords.TryGetValue(text, out type)) {
+        if (!Keywords.TryGetValue(text, out type))
+        {
             type = TokenType.Identifier;
         }
 
