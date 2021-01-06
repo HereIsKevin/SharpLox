@@ -54,4 +54,26 @@ public class Environment
     {
         Values[name] = value;
     }
+
+    public object GetAt(int distance, string name)
+    {
+        return Ancestor(distance).Values[name];
+    }
+
+    public void AssignAt(int distance, Token name, object value)
+    {
+        Ancestor(distance).Values[name.Lexeme] = value;
+    }
+
+    public Environment Ancestor(int distance)
+    {
+        Environment environment = this;
+
+        for (int i = 0; i < distance; i++)
+        {
+            environment = environment.Enclosing;
+        }
+
+        return environment;
+    }
 }
