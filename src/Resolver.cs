@@ -238,7 +238,7 @@ public class Resolver : Expr.Visitor<object>, Stmt.Visitor<object>
     {
         for (int i = Scopes.Count - 1; i >= 0; i--)
         {
-            if (Scopes.ElementAt(i).ContainsKey(name.Lexeme))
+            if (Scopes.Reverse().ElementAt(i).ContainsKey(name.Lexeme))
             {
                 Interpreter.Resolve(expr, Scopes.Count - 1 - i);
                 return;
