@@ -18,15 +18,19 @@ public class GenerateAst
             "Assign : Token name, Expr value",
             "Binary : Expr left, Token operation, Expr right",
             "Call : Expr callee, Token paren, List<Expr> arguments",
+            "Get : Expr value, Token name",
             "Grouping : Expr expression",
             "Literal : object value",
             "Logical : Expr left, Token operation, Expr right",
+            "Set : Expr expression, Token name, Expr value",
+            "This : Token keyword",
             "Unary : Token operation, Expr right",
             "Variable : Token name"
         });
 
         DefineAst(outputDir, "Stmt", new List<string> {
             "Block : List<Stmt> statements",
+            "Class : Token name, List<Stmt.Function> methods",
             "Expression : Expr value",
             "Function : Token name, List<Token> parameters, List<Stmt> body",
             "If : Expr condition, Stmt thenBranch, Stmt elseBranch",

@@ -7,11 +7,20 @@ public class Resolver : Expr.Visitor<object>, Stmt.Visitor<object>
     private readonly Stack<Dictionary<string, bool>> Scopes =
         new Stack<Dictionary<string, bool>>();
     private FunctionType CurrentFunction = FunctionType.None;
+    private ClassType CurrentClass = ClassType.None;
 
     private enum FunctionType
     {
         None,
-        Function
+        Function,
+        Method,
+        Initializer
+    }
+
+    private enum ClassType
+    {
+        None,
+        Class
     }
 
     public Resolver(Interpreter interpreter)
@@ -24,6 +33,35 @@ public class Resolver : Expr.Visitor<object>, Stmt.Visitor<object>
         BeginScope();
         Resolve(stmt.Statements);
         EndScope();
+        return null;
+    }
+
+    public object VisitClassStmt(Stmt.Class stmt)
+    {
+        ClassType enclosingClass = CurrentClass;
+        CurrentClass = ClassType.Class;
+
+        Declare(stmt.Name);
+        Define(stmt.Name);
+
+        BeginScope();
+        Scopes.Peek()["this"] = true;
+
+        foreach (Stmt.Function method in stmt.Methods)
+        {
+            FunctionType declaration = FunctionType.Method;
+
+            if (method.Name.Lexeme.Equals("init"))
+            {
+                declaration = FunctionType.Initializer;
+            }
+
+            ResolveFunction(method, declaration);
+        }
+
+        EndScope();
+
+        CurrentClass = enclosingClass;
         return null;
     }
 
@@ -79,6 +117,12 @@ public class Resolver : Expr.Visitor<object>, Stmt.Visitor<object>
         return null;
     }
 
+    public object VisitGetExpr(Expr.Get expr)
+    {
+        Resolve(expr.Value);
+        return null;
+    }
+
     public object VisitGroupingExpr(Expr.Grouping expr)
     {
         Resolve(expr.Expression);
@@ -94,6 +138,25 @@ public class Resolver : Expr.Visitor<object>, Stmt.Visitor<object>
     {
         Resolve(expr.Left);
         Resolve(expr.Right);
+        return null;
+    }
+
+    public object VisitSetExpr(Expr.Set expr)
+    {
+        Resolve(expr.Value);
+        Resolve(expr.Expression);
+        return null;
+    }
+
+    public object VisitThisExpr(Expr.This expr)
+    {
+        if (CurrentClass == ClassType.None)
+        {
+            Lox.Error(expr.Keyword, "Can't use 'this' outside of a class.");
+            return null;
+        }
+
+        ResolveLocal(expr, expr.Keyword);
         return null;
     }
 
@@ -140,6 +203,12 @@ public class Resolver : Expr.Visitor<object>, Stmt.Visitor<object>
 
         if (stmt.Value != null)
         {
+            if (CurrentFunction == FunctionType.Initializer)
+            {
+                Lox.Error(stmt.Keyword,
+                    "Can't return a value from an initializer.");
+            }
+
             Resolve(stmt.Value);
         }
 

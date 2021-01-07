@@ -4,11 +4,21 @@ public class LoxFunction : LoxCallable
 {
     private readonly Stmt.Function Declaration;
     private readonly Environment Closure;
+    private readonly bool IsInitializer;
 
-    public LoxFunction(Stmt.Function declaration, Environment closure)
+    public LoxFunction(Stmt.Function declaration, Environment closure,
+        bool isInitializer)
     {
+        IsInitializer = isInitializer;
         Declaration = declaration;
         Closure = closure;
+    }
+
+    public LoxFunction Bind(LoxInstance instance)
+    {
+        Environment environment = new Environment(Closure);
+        environment.Define("this", instance);
+        return new LoxFunction(Declaration, environment, IsInitializer);
     }
 
     public override string ToString()
@@ -36,7 +46,17 @@ public class LoxFunction : LoxCallable
         }
         catch (Return returnValue)
         {
+            if (IsInitializer)
+            {
+                return Closure.GetAt(0, "this");
+            }
+
             return returnValue.Value;
+        }
+
+        if (IsInitializer)
+        {
+            return Closure.GetAt(0, "this");
         }
 
         return null;

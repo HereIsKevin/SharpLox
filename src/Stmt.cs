@@ -5,6 +5,7 @@ public abstract class Stmt
     public interface Visitor<R>
     {
         R VisitBlockStmt(Block stmt);
+        R VisitClassStmt(Class stmt);
         R VisitExpressionStmt(Expression stmt);
         R VisitFunctionStmt(Function stmt);
         R VisitIfStmt(If stmt);
@@ -27,6 +28,23 @@ public abstract class Stmt
         }
 
         public readonly List<Stmt> Statements;
+    }
+
+    public class Class : Stmt
+    {
+        public Class(Token name, List<Stmt.Function> methods)
+        {
+            Name = name;
+            Methods = methods;
+        }
+
+        public override R Accept<R>(Visitor<R> visitor)
+        {
+            return visitor.VisitClassStmt(this);
+        }
+
+        public readonly Token Name;
+        public readonly List<Stmt.Function> Methods;
     }
 
     public class Expression : Stmt

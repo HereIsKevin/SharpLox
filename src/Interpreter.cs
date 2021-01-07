@@ -59,7 +59,7 @@ public class Interpreter : Expr.Visitor<object>, Stmt.Visitor<object>
 
     public object VisitFunctionStmt(Stmt.Function stmt)
     {
-        LoxFunction function = new LoxFunction(stmt, Environment);
+        LoxFunction function = new LoxFunction(stmt, Environment, false);
         Environment.Define(stmt.Name.Lexeme, function);
         return null;
     }
@@ -126,6 +126,24 @@ public class Interpreter : Expr.Visitor<object>, Stmt.Visitor<object>
         return null;
     }
 
+    public object VisitClassStmt(Stmt.Class stmt)
+    {
+        Environment.Define(stmt.Name.Lexeme, null);
+        Dictionary<string, LoxFunction> methods =
+            new Dictionary<string, LoxFunction>();
+
+        foreach (Stmt.Function method in stmt.Methods)
+        {
+            LoxFunction function = new LoxFunction(method, Environment,
+                method.Name.Lexeme.Equals("init"));
+            methods[method.Name.Lexeme] = function;
+        }
+
+        LoxClass klass = new LoxClass(stmt.Name.Lexeme, methods);
+        Environment.Assign(stmt.Name, klass);
+        return null;
+    }
+
     public object VisitAssignExpr(Expr.Assign expr)
     {
         object value = Evaluate(expr.Value);
@@ -170,6 +188,26 @@ public class Interpreter : Expr.Visitor<object>, Stmt.Visitor<object>
         return Evaluate(expr.Right);
     }
 
+    public object VisitSetExpr(Expr.Set expr)
+    {
+        object expression = Evaluate(expr.Expression);
+
+        if (!(expression is LoxInstance))
+        {
+            throw new RuntimeException(expr.Name,
+                "Only instances have fields.");
+        }
+
+        object value = Evaluate(expr.Value);
+        ((LoxInstance)expression).Set(expr.Name, value);
+        return value;
+    }
+
+    public object VisitThisExpr(Expr.This expr)
+    {
+        return LookUpVariable(expr.Keyword, expr);
+    }
+
     public object VisitGroupingExpr(Expr.Grouping expr)
     {
         return Evaluate(expr.Expression);
@@ -201,6 +239,19 @@ public class Interpreter : Expr.Visitor<object>, Stmt.Visitor<object>
         }
 
         return function.Call(this, arguments);
+    }
+
+    public object VisitGetExpr(Expr.Get expr)
+    {
+        object value = Evaluate(expr.Value);
+
+        if (value is LoxInstance)
+        {
+            return ((LoxInstance)value).Get(expr.Name);
+        }
+
+        throw new RuntimeException(expr.Name,
+            "Only instances have properties.");
     }
 
     public object VisitUnaryExpr(Expr.Unary expr)
