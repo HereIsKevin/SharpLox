@@ -128,7 +128,27 @@ public class Interpreter : Expr.Visitor<object>, Stmt.Visitor<object>
 
     public object VisitClassStmt(Stmt.Class stmt)
     {
+        object superclass = null;
+
+        if (stmt.Superclass != null)
+        {
+            superclass = Evaluate(stmt.Superclass);
+
+            if (!(superclass is LoxClass))
+            {
+                throw new RuntimeException(stmt.Superclass.Name,
+                    "Superclass must be a class.");
+            }
+        }
+
         Environment.Define(stmt.Name.Lexeme, null);
+
+        if (stmt.Superclass != null)
+        {
+            Environment = new Environment(Environment);
+            Environment.Define("super", superclass);
+        }
+
         Dictionary<string, LoxFunction> methods =
             new Dictionary<string, LoxFunction>();
 
@@ -139,7 +159,14 @@ public class Interpreter : Expr.Visitor<object>, Stmt.Visitor<object>
             methods[method.Name.Lexeme] = function;
         }
 
-        LoxClass klass = new LoxClass(stmt.Name.Lexeme, methods);
+        LoxClass klass = new LoxClass(stmt.Name.Lexeme,
+            (LoxClass)superclass, methods);
+
+        if (superclass != null)
+        {
+            Environment = Environment.Enclosing;
+        }
+
         Environment.Assign(stmt.Name, klass);
         return null;
     }
@@ -201,6 +228,23 @@ public class Interpreter : Expr.Visitor<object>, Stmt.Visitor<object>
         object value = Evaluate(expr.Value);
         ((LoxInstance)expression).Set(expr.Name, value);
         return value;
+    }
+
+    public object VisitSuperExpr(Expr.Super expr)
+    {
+        int distance = Locals[expr];
+        LoxClass superclass = (LoxClass)Environment.GetAt(distance, "super");
+        LoxInstance instance = (LoxInstance)Environment.GetAt(
+            distance - 1, "this");
+        LoxFunction method = superclass.FindMethod(expr.Method.Lexeme);
+
+        if (method == null)
+        {
+            throw new RuntimeException(expr.Method,
+                $"Undefined property '{expr.Method.Lexeme}'.");
+        }
+
+        return method.Bind(instance);
     }
 
     public object VisitThisExpr(Expr.This expr)

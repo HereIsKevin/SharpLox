@@ -3,10 +3,13 @@ using System.Collections.Generic;
 public class LoxClass : LoxCallable
 {
     public readonly string Name;
+    public readonly LoxClass Superclass;
     private readonly Dictionary<string, LoxFunction> Methods;
 
-    public LoxClass(string name, Dictionary<string, LoxFunction> methods)
+    public LoxClass(string name, LoxClass superclass,
+        Dictionary<string, LoxFunction> methods)
     {
+        Superclass = superclass;
         Name = name;
         Methods = methods;
     }
@@ -18,6 +21,11 @@ public class LoxClass : LoxCallable
         if (Methods.TryGetValue(name, out method))
         {
             return method;
+        }
+
+        if (Superclass != null)
+        {
+            return Superclass.FindMethod(name);
         }
 
         return null;
